@@ -38,14 +38,33 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     wallet_id = Column(Integer, ForeignKey("wallets.id"))
     transaction_type = Column(String(50), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     description = Column(String(255))
     reference_transaction_id = Column(Integer, ForeignKey("transactions.id"))
     recipient_user_id = Column(Integer, ForeignKey("users.id"))
+    transfer_id = Column(String(50))  # Link to transfer record
     created_at = Column(TIMESTAMP, default=func.current_timestamp())
     user = relationship("User", back_populates="transactions", primaryjoin="User.id == Transaction.user_id")
 
     wallet = relationship("Wallet", back_populates="transactions", primaryjoin="Wallet.id == Transaction.wallet_id")
+
+
+class Transfer(Base):
+    __tablename__ = "transfers"
+
+    id = Column(String(50), primary_key=True, index=True)  # UUID or unique string
+    sender_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    description = Column(String(255))
+    status = Column(String(20), default="completed")
+    sender_transaction_id = Column(Integer, ForeignKey("transactions.id"))
+    recipient_transaction_id = Column(Integer, ForeignKey("transactions.id"))
+    created_at = Column(TIMESTAMP, default=func.current_timestamp())
+    
+    # Relationships
+    sender = relationship("User", foreign_keys=[sender_user_id])
+    recipient = relationship("User", foreign_keys=[recipient_user_id])

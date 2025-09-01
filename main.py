@@ -2,7 +2,11 @@ from fastapi import FastAPI, HTTPException, Depends
 from db import SessionLocal, engine, Base
 import services.service as user_service
 from sqlalchemy.orm import Session
-from schemas.schema import TransactionCreate, TransactionCreate, TransactionInDB, UserCreate,UserInDB,UserUpdate,WalletUpdate,WalletInDB,WalletCreate
+from schemas.schema import (
+    TransactionCreate, TransactionInDB, UserCreate, UserInDB, UserUpdate, 
+    WalletUpdate, WalletInDB, WalletCreate, TransferCreate, TransferResponse, 
+    TransferInDB, ErrorResponse
+)
 from models.models import User, Wallet, Transaction
 app = FastAPI()
 
@@ -135,14 +139,52 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     db_transaction = user_service.create_transaction(db, transaction)
     if db_transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not created")
-    return {
-        "id": db_transaction.id,
-        "user_id": db_transaction.user_id,
-        "wallet_id": db_transaction.wallet_id,
-        "transaction_type": db_transaction.transaction_type,
-        "amount": db_transaction.amount,
-        "description": db_transaction.description,
-        "reference_transaction_id": db_transaction.reference_transaction_id,
-        "recipient_user_id": db_transaction.recipient_user_id,
-        "created_at": db_transaction.created_at
-    }
+    return db_transaction
+
+# ===============================================================================================
+
+# Transfer endpoints
+@app.post("/transfer", response_model=TransferResponse, status_code=201)
+def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
+    """Create a transfer between two users"""
+    try:
+        # Validate that sender and recipient exist
+        sender = user_service.get_user(db, transfer.sender_user_id)
+        recipient = user_service.get_user(db, transfer.recipient_user_id)
+        
+        if not sender:
+            raise HTTPException(status_code=404, detail=f"Sender user {transfer.sender_user_id} not found")
+        if not recipient:
+            raise HTTPException(status_code=404, detail=f"Recipient user {transfer.recipient_user_id} not found")
+        
+        if transfer.sender_user_id == transfer.recipient_user_id:
+            raise HTTPException(status_code=400, detail="Cannot transfer to yourself")
+        
+        if transfer.amount <= 0:
+            raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+        
+        # Create the transfer
+        result = user_service.create_transfer(db, transfer)
+        
+        # Check if it's an error response (insufficient balance)
+        if "error" in result:
+            raise HTTPException(
+                status_code=400, 
+                detail=result
+            )
+        
+        return result
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/transfer/{transfer_id}", response_model=TransferInDB)
+def get_transfer(transfer_id: str, db: Session = Depends(get_db)):
+    """Get transfer details by transfer ID"""
+    db_transfer = user_service.get_transfer(db, transfer_id)
+    if db_transfer is None:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+    return db_transfer

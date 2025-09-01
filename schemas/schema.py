@@ -50,7 +50,7 @@ class TransactionBase(BaseModel):
     description: str
 
 class TransactionCreate(TransactionBase):
-    pass
+    transfer_id: Optional[str] = None
 
 class TransactionUpdate(TransactionBase):
     pass
@@ -60,3 +60,38 @@ class TransactionInDB(TransactionBase):
 
     class Config:
         orm_mode = True
+
+
+# Transfer schemas
+class TransferBase(BaseModel):
+    sender_user_id: int
+    recipient_user_id: int
+    amount: float
+    description: str
+
+class TransferCreate(TransferBase):
+    pass
+
+class TransferResponse(BaseModel):
+    transfer_id: str
+    sender_transaction_id: int
+    recipient_transaction_id: int
+    amount: float
+    sender_new_balance: float
+    recipient_new_balance: float
+    status: str
+
+class TransferInDB(TransferBase):
+    id: str
+    status: str
+    sender_transaction_id: Optional[int]
+    recipient_transaction_id: Optional[int]
+    created_at: datetime.datetime
+
+    class Config:
+        orm_mode = True
+
+class ErrorResponse(BaseModel):
+    error: str
+    current_balance: float
+    required_amount: float
