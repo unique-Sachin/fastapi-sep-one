@@ -16,7 +16,8 @@ class User(Base):
     balance = Column(Numeric(10, 2), default=0.00)
     created_at = Column(TIMESTAMP, default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
-    wallet = relationship("Wallet", back_populates="user")
+    wallet = relationship("Wallet", back_populates="user", primaryjoin="User.id == Wallet.user_id")
+    transactions = relationship("Transaction", back_populates="user", primaryjoin="User.id == Transaction.user_id")
 
 
 # creating wallet models
@@ -29,27 +30,15 @@ class Wallet(Base):
     description = Column(String(255))
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
-    user = relationship("User", back_populates="wallet")
+    user = relationship("User", back_populates="wallet", primaryjoin="Wallet.user_id == User.id")
+    transactions = relationship("Transaction", back_populates="wallet", primaryjoin="Wallet.id == Transaction.wallet_id")
 
-
-# creating transaction model
-# // Transactions Collection
-# {
-#   "_id": ObjectId,
-#   "user_id": ObjectId,
-#   "transaction_type": "CREDIT|DEBIT|TRANSFER_IN|TRANSFER_OUT",
-#   "amount": 0.00,
-#   "description": "string",
-#   "reference_transaction_id": ObjectId, // For linking transfers
-#   "recipient_user_id": ObjectId, // For transfers
-#   "created_at": Date
-# }
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     wallet_id = Column(Integer, ForeignKey("wallets.id"))
     transaction_type = Column(String(50), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
@@ -57,6 +46,6 @@ class Transaction(Base):
     reference_transaction_id = Column(Integer, ForeignKey("transactions.id"))
     recipient_user_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(TIMESTAMP, default=func.current_timestamp())
+    user = relationship("User", back_populates="transactions", primaryjoin="User.id == Transaction.user_id")
 
-    user = relationship("User", back_populates="transactions")
-    wallet = relationship("Wallet", back_populates="transactions")
+    wallet = relationship("Wallet", back_populates="transactions", primaryjoin="Wallet.id == Transaction.wallet_id")

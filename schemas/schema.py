@@ -48,9 +48,6 @@ class TransactionBase(BaseModel):
     transaction_type: str
     amount: float
     description: str
-    reference_transaction_id: Optional[int]
-    recipient_user_id: Optional[int]
-    created_at: datetime.datetime
 
 class TransactionCreate(TransactionBase):
     pass

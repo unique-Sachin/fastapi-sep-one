@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
-from models.models import Wallet,User
-from schemas.schema import UserCreate, UserUpdate,WalletCreate
+from models.models import Transaction, Wallet,User
+from schemas.schema import TransactionCreate, TransactionInDB, UserCreate, UserUpdate,WalletCreate
 
 
 
@@ -78,3 +78,18 @@ def withdraw_money(db, user_id: int, amount: float, description: str):
         db.commit()
         db.refresh(user_wallet)
     return user_wallet
+
+
+# ----------------------------------------------------------------------------------------------------------------
+
+# get transactions
+def get_transactions(db, user_id: int):
+    return db.query(Transaction).filter(Transaction.user_id == user_id).all()
+
+def create_transaction(db, transaction: TransactionCreate):
+    db_transaction = Transaction(**transaction.model_dump())
+    db.add(db_transaction)
+    db.commit()
+    if db_transaction:
+        db.refresh(db_transaction)
+    return db_transaction
