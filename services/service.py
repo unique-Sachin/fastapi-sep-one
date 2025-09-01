@@ -90,6 +90,6 @@ def create_transaction(db, transaction: TransactionCreate):
     db_transaction = Transaction(**transaction.model_dump())
     db.add(db_transaction)
     db.commit()
-    if db_transaction:
-        db.refresh(db_transaction)
-    return db_transaction
+    db.refresh(db_transaction)
+
+    # return db_transaction
